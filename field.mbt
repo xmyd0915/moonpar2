@@ -1,20 +1,34 @@
 ///|
 /// Multiply two 16-bit words in the field specified by PAR2.
 fn multiply(left : Int32, right : Int32) -> Int32 {
-  let mut a = left
-  let mut b = right
-  let mut result = 0
-  while b != 0 {
-    if (b & 1) != 0 {
-      result = result ^ a
-    }
-    b = b >> 1
-    a = a << 1
-    if a >= 65536 {
-      a = a ^ 0x1100b
+  if left == 0 || right == 0 {
+    return 0
+  }
+  let e = field_logs[left] + field_logs[right]
+  field_powers[if e >= 65535 { e - 65535 } else { e }]
+}
+
+///|
+let field_powers : FixedArray[Int32] = {
+  let values = FixedArray::make(65535, 0)
+  let mut x = 1
+  for i = 0; i < 65535; i = i + 1 {
+    values[i] = x
+    x = x << 1
+    if x >= 65536 {
+      x = x ^ 0x1100b
     }
   }
-  result
+  values
+}
+
+///|
+let field_logs : FixedArray[Int32] = {
+  let values = FixedArray::make(65536, 0)
+  for i = 0; i < 65535; i = i + 1 {
+    values[field_powers[i]] = i
+  }
+  values
 }
 
 ///|

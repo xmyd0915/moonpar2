@@ -8,7 +8,23 @@ pub fn RecoverySet::repair(
   let scan = self.scan(files)
   let exps = self.parity.keys().to_array()
   exps.sort()
-  guard recover(scan.blocks, exps, exps.map(fn(e) { self.parity[e] }))
+  let missing = []
+  for i = 0; i < scan.blocks.length(); i = i + 1 {
+    if scan.blocks[i] is None {
+      missing.push(i)
+    }
+  }
+  guard solve(
+      scan.blocks.length(),
+      missing,
+      exps,
+      exps.map(fn(e) { self.parity[e] }),
+      fn(row, offset, j, weight) {
+        if scan.blocks[j] is Some(view) {
+          xor_slice(row, offset, view, weight)
+        }
+      },
+    )
     is Some(restored) else {
     fail("insufficient independent recovery slices")
   }
@@ -16,20 +32,20 @@ pub fn RecoverySet::repair(
   let mut pos = 0
   let mut recovered = 0
   for entry in self.members {
-    let buf = @buffer.Buffer()
+    let buf = @buffer.Buffer(size_hint=entry.length)
     let count = (entry.length + self.width - 1) / self.width
     for i = 0; i < count; i = i + 1 {
-      let words = match scan.blocks[pos] {
+      let block = match scan.blocks[pos] {
         Some(known) => known
         None => {
           let value = restored[recovered]
           recovered = recovered + 1
-          value
+          as_bytes(value)[:]
         }
       }
       pos = pos + 1
       let len = (entry.length - i * self.width).min(self.width)
-      buf.write_bytes(as_bytes(words)[:len])
+      buf.write_bytes(block[:len])
     }
     let bytes = buf.to_bytes()
     if md5(bytes) != entry.hash {

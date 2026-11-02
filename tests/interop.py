@@ -33,6 +33,10 @@ def exercise(folder, reference, create_with_reference):
         call([reference, "c", "-q", "-t1", "-s256", "-c3", "-f3", "-n1",
               "set.par2", *originals], folder)
     else:
+        for invalid in ("0", "33", "x"):
+            call(cli + ["create", "--recovery-blocks", invalid, "bad.par2", *originals],
+                 folder, 2)
+            assert not (folder / "bad.par2").exists()
         call(cli + ["create", "set.par2", *originals], folder)
         call(cli + ["create", "set.par2", *originals], folder, 2)
     volumes = [p.name for p in sorted(folder.glob("*.par2"))]

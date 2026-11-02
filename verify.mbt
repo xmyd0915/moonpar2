@@ -9,7 +9,7 @@ pub(all) struct FileStatus {
 ///|
 priv struct Scan {
   status : Array[FileStatus]
-  blocks : Array[Array[Int32]?]
+  blocks : Array[BytesView?]
 }
 
 ///|
@@ -24,17 +24,15 @@ fn RecoverySet::scan(self : RecoverySet, files : Map[String, Bytes]) -> Scan {
       let start = i * self.width
       let end = (start + self.width).min(m.length)
       if source is Some(b) && end <= b.length() {
-        let block = Bytes::makei(self.width, fn(j) {
-          if start + j < end {
-            b[start + j]
-          } else {
-            b'\x00'
-          }
-        })
+        let block = if end - start == self.width {
+          b[start:end]
+        } else {
+          slice_at(b[start:end].to_owned(), 0, self.width)
+        }
         let offset = 16 + i * 20
         if crc32(block) == le32(m.sums, offset + 16) &&
           md5(block) == m.sums[offset:offset + 16].to_owned() {
-          blocks.push(Some(as_words(block)))
+          blocks.push(Some(block))
           continue
         }
       }

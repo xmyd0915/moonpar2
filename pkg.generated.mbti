@@ -2,6 +2,10 @@
 package "xmyd0915/moonpar2"
 
 // Values
+pub const MaxSourceBytes : Int32 = 67108864
+
+pub const MaxVolumeBytes : Int32 = 16777216
+
 pub fn create(Array[(String, Bytes)], width? : Int32, recovery_blocks? : Int32) -> Bytes raise
 
 pub fn encode(Array[Array[Int32]], Int32) -> Array[Int32]?

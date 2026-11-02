@@ -1,5 +1,5 @@
 ///|
-fn le32(data : Bytes, at : Int32) -> UInt32 {
+fn le32(data : BytesView, at : Int32) -> UInt32 {
   let mut value = 0U
   for j = 0; j < 4; j = j + 1 {
     value = value | (data[at + j].to_uint() << (8 * j))
@@ -8,13 +8,20 @@ fn le32(data : Bytes, at : Int32) -> UInt32 {
 }
 
 ///|
-fn crc32(data : Bytes) -> UInt32 {
+let crc_table : FixedArray[UInt32] = FixedArray::makei(256, fn(i) {
+  let mut x = i.reinterpret_as_uint()
+  for bit = 0; bit < 8; bit = bit + 1 {
+    x = (x >> 1) ^ (if (x & 1U) != 0U { 0xedb88320U } else { 0U })
+  }
+  x
+})
+
+///|
+fn crc32(data : BytesView) -> UInt32 {
   let mut crc = 0xffffffffU
   for byte in data {
-    crc = crc ^ byte.to_uint()
-    for i = 0; i < 8; i = i + 1 {
-      crc = (crc >> 1) ^ (if (crc & 1U) != 0U { 0xedb88320U } else { 0U })
-    }
+    crc = (crc >> 8) ^
+      crc_table[((crc ^ byte.to_uint()) & 255U).reinterpret_as_int()]
   }
   crc ^ 0xffffffffU
 }
@@ -41,24 +48,33 @@ let rotations : Array[Int32] = [
 ]
 
 ///|
-fn md5(data : Bytes) -> Bytes {
+fn md5(data : BytesView) -> Bytes {
   let state = [0x67452301U, 0xefcdab89U, 0x98badcfeU, 0x10325476U]
   let count = (data.length() + 72) / 64
+  let words = FixedArray::make(16, 0U)
   for chunk = 0; chunk < count; chunk = chunk + 1 {
-    let words = Array::make(16, 0U)
-    for j = 0; j < 64; j = j + 1 {
-      let pos = chunk * 64 + j
-      let x = if pos < data.length() {
-        data[pos].to_uint()
-      } else if pos == data.length() {
-        128U
-      } else if pos >= count * 64 - 8 {
-        (((data.length().to_uint64() * 8UL) >> ((pos - (count * 64 - 8)) * 8)) &
-        255UL).to_uint()
-      } else {
-        0U
+    if chunk * 64 + 64 <= data.length() {
+      for i = 0; i < 16; i = i + 1 {
+        words[i] = le32(data, chunk * 64 + i * 4)
       }
-      words[j / 4] = words[j / 4] | (x << (j % 4 * 8))
+    } else {
+      for i = 0; i < 16; i = i + 1 {
+        words[i] = 0U
+      }
+      for j = 0; j < 64; j = j + 1 {
+        let pos = chunk * 64 + j
+        let x = if pos < data.length() {
+          data[pos].to_uint()
+        } else if pos == data.length() {
+          128U
+        } else if pos >= count * 64 - 8 {
+          (((data.length().to_uint64() * 8UL) >> ((pos - (count * 64 - 8)) * 8)) &
+          255UL).to_uint()
+        } else {
+          0U
+        }
+        words[j / 4] = words[j / 4] | (x << (j % 4 * 8))
+      }
     }
     let mut a = state[0]
     let mut b = state[1]

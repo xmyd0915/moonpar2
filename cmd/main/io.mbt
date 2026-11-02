@@ -12,7 +12,8 @@ extern "js" fn read_bounded(
   #|     if (!entry.isFile()) return 'expected a regular file: ' + path;
   #|     fd = fs.openSync(path, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
   #|     const stat = fs.fstatSync(fd);
-  #|     if (!stat.isFile() || stat.size > limit) return 'input too large or not a file: ' + path;
+  #|     if (!stat.isFile()) return 'expected a regular file: ' + path;
+  #|     if (stat.size > limit) return 'input exceeds remaining size budget (' + limit + ' bytes): ' + path;
   #|     const bytes = Buffer.alloc(stat.size);
   #|     let offset = 0;
   #|     while (offset < bytes.length) {

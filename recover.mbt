@@ -36,17 +36,40 @@ pub fn recover(
       missing.push(i)
     }
   }
+  let width = if parity.is_empty() { 0 } else { parity[0].length() }
+  if !missing.is_empty() {
+    for b in data {
+      if b is Some(words) && words.length() != width {
+        return None
+      }
+    }
+  }
+  solve(data.length(), missing, exponents, parity, fn(row, offset, j, weight) {
+    if data[j] is Some(block) {
+      for w = 0; w < width; w = w + 1 {
+        row[offset + w] = row[offset + w] ^ multiply(weight, block[w])
+      }
+    }
+  })
+}
+
+///|
+fn solve(
+  count : Int32,
+  missing : Array[Int32],
+  exponents : Array[Int32],
+  parity : Array[Array[Int32]],
+  subtract : (Array[Int32], Int32, Int32, Int32) -> Unit,
+) -> Array[Array[Int32]]? {
   let n = missing.length()
   if n == 0 {
     return Some([])
   }
-  if data.length() > 32768 ||
-    parity.length() < n ||
-    exponents.length() != parity.length() {
+  if parity.length() < n {
     return None
   }
   let width = parity[0].length()
-  let bases = slice_bases(data.length())
+  let bases = slice_bases(count)
   let rows : Array[Array[Int32]] = []
   for i = 0; i < parity.length(); i = i + 1 {
     if parity[i].length() != width {
@@ -57,15 +80,8 @@ pub fn recover(
     for word in parity[i] {
       row.push(word)
     }
-    for j = 0; j < data.length(); j = j + 1 {
-      if data[j] is Some(block) {
-        if block.length() != width {
-          return None
-        }
-        for w = 0; w < width; w = w + 1 {
-          row[n + w] = row[n + w] ^ multiply(weights[j], block[w])
-        }
-      }
+    for j = 0; j < count; j = j + 1 {
+      subtract(row, n, j, weights[j])
     }
     rows.push(row)
   }

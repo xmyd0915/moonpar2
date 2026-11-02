@@ -1,5 +1,5 @@
 ///|
-let usage = "moonpar2 create SET.par2 FILE...\nmoonpar2 verify INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 repair NEW_DIRECTORY INDEX.par2 [VOLUME.par2 ...]"
+let usage = "moonpar2 create [--recovery-blocks N] SET.par2 FILE...\nmoonpar2 verify INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 repair NEW_DIRECTORY INDEX.par2 [VOLUME.par2 ...]"
 
 ///|
 fn run(args : Array[String]) -> Int32 raise {
@@ -10,12 +10,33 @@ fn run(args : Array[String]) -> Int32 raise {
   guard args.length() >= 2 else { fail(usage) }
   let op = args[0]
   if op == "create" {
-    guard args.length() >= 3 && args.length() <= 66 && @par.safe_name(args[1]) else {
+    let mut dest = 1
+    let mut parity = 4
+    if args[1] == "--recovery-blocks" {
+      guard args.length() >= 5 else { fail(usage) }
+      guard args[2].length() <= 2 else {
+        fail("expected 1 to 32 recovery slices")
+      }
+      parity = 0
+      for c in args[2] {
+        if c < '0' || c > '9' {
+          fail("expected a decimal recovery block count")
+        }
+        parity = parity * 10 + c.to_int() - 48
+      }
+      if parity < 1 || parity > 32 {
+        fail("recovery block count must be between 1 and 32")
+      }
+      dest = 3
+    }
+    guard args.length() > dest + 1 &&
+      args.length() - dest - 1 <= 64 &&
+      @par.safe_name(args[dest]) else {
       fail(usage)
     }
     let inputs = []
-    let mut budget = 4194304
-    for i = 2; i < args.length(); i = i + 1 {
+    let mut budget = @par.MaxSourceBytes
+    for i = dest + 1; i < args.length(); i = i + 1 {
       let name = args[i]
       if !@par.safe_name(name) {
         fail("expected a portable filename: " + name)
@@ -26,9 +47,9 @@ fn run(args : Array[String]) -> Int32 raise {
       budget = budget - bytes.length()
       inputs.push((name, bytes))
     }
-    let bytes = @par.create(inputs)
-    check_io(write_new(args[1], bytes))
-    println("created " + args[1])
+    let bytes = @par.create(inputs, recovery_blocks=parity)
+    check_io(write_new(args[dest], bytes))
+    println("created " + args[dest])
     return 0
   }
   if op != "repair" && op != "verify" {
@@ -38,7 +59,7 @@ fn run(args : Array[String]) -> Int32 raise {
   if args.length() <= start || args.length() - start > 64 {
     fail(usage)
   }
-  let mut budget = 16777216
+  let mut budget = @par.MaxVolumeBytes
   let vols = []
   for i = start; i < args.length(); i = i + 1 {
     guard read(args[i], budget) is Some(v) else {
@@ -50,7 +71,7 @@ fn run(args : Array[String]) -> Int32 raise {
   let set = @par.read_set(vols)
   let base = parent(args[start])
   let sources : Map[String, Bytes] = Map([])
-  let mut source_budget = 16777216
+  let mut source_budget = @par.MaxSourceBytes + @par.MaxVolumeBytes
   for name in set.names() {
     if read(base + "/" + name, source_budget) is Some(b) {
       sources[name] = b

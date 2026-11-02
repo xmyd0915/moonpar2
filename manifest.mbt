@@ -41,17 +41,39 @@ pub fn safe_name(name : String) -> Bool {
 }
 
 ///|
-fn pieces(data : Bytes, width : Int32) -> Array[Bytes] {
-  Array::makei((data.length() + width - 1) / width, fn(i) {
-    Bytes::makei(width, fn(j) {
-      let at = i * width + j
-      if at < data.length() {
-        data[at]
-      } else {
-        b'\x00'
-      }
-    })
+fn slice_at(data : Bytes, start : Int32, width : Int32) -> BytesView {
+  if data.length() - start >= width {
+    return data[start:start + width]
+  }
+  let padded = Bytes::makei(width, fn(j) {
+    if start + j < data.length() {
+      data[start + j]
+    } else {
+      b'\x00'
+    }
   })
+  padded[:]
+}
+
+///|
+fn xor_slice(
+  row : Array[Int32],
+  offset : Int32,
+  data : BytesView,
+  factor : Int32,
+) -> Unit {
+  if factor == 0 {
+    return
+  }
+  let log = field_logs[factor]
+  for j = 0; j < data.length() / 2; j = j + 1 {
+    let word = data[j * 2].to_int() | (data[j * 2 + 1].to_int() << 8)
+    if word != 0 {
+      let e = log + field_logs[word]
+      row[offset + j] = row[offset + j] ^
+        field_powers[if e >= 65535 { e - 65535 } else { e }]
+    }
+  }
 }
 
 ///|
@@ -69,7 +91,7 @@ fn as_bytes(words : Array[Int32]) -> Bytes {
 }
 
 ///|
-fn describe(name : String, data : Bytes, blocks : Array[Bytes]) -> Member {
+fn describe(name : String, data : Bytes, width : Int32) -> Member {
   let prefix = md5(data[:data.length().min(16384)].to_owned())
   let buf = @buffer.Buffer()
   buf.write_bytes(prefix)
@@ -84,7 +106,8 @@ fn describe(name : String, data : Bytes, blocks : Array[Bytes]) -> Member {
   let desc = joined([id, hash, buf.to_bytes()])
   let sums = @buffer.Buffer()
   sums.write_bytes(id)
-  for b in blocks {
+  for at = 0; at < data.length(); at = at + width {
+    let b = slice_at(data, at, width)
     sums.write_bytes(md5(b))
     sums.write_uint_le(crc32(b))
   }
@@ -97,5 +120,5 @@ test "portable names and partial slice padding" {
   for bad in ["../x", "NUL.txt", ".", "AUX", "COM1.cfg", "a/b", "a:"] {
     assert_false(safe_name(bad))
   }
-  assert_eq(pieces(b"12345", 4), [b"1234", b"5\x00\x00\x00"])
+  assert_eq(slice_at(b"12345", 4, 4).to_owned(), b"5\x00\x00\x00")
 }
