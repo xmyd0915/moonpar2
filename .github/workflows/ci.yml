@@ -1,0 +1,30 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f
+        with:
+          version: '0.10.16+b1a0e846e'
+          core-version: '0.10.16+b1a0e846e'
+      - run: moon fmt --check
+      - run: moon check --target js --deny-warn
+      - run: moon test --target js --deny-warn
+      - run: moon build cmd/main --target js --deny-warn
+      - run: python examples/repair_demo.py
+      - name: Check recovery against par2cmdline 1.4.0
+        run: python tests/reference_ci.py
