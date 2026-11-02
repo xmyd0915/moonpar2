@@ -31,6 +31,8 @@ def main():
         os.chmod(exe, 0o755)
         subprocess.run([sys.executable, str(Path(__file__).with_name("interop.py")),
                         "--par2", str(exe)], check=True)
+        subprocess.run([sys.executable, str(Path(__file__).with_name("capacity.py")),
+                        "--mib", "64", "--par2", str(exe)], check=True)
 
 
 if __name__ == "__main__":
