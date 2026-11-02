@@ -1,0 +1,5 @@
+import {
+  "xmyd0915/moonpar2" @par,
+}
+
+pkgtype(kind: "executable")

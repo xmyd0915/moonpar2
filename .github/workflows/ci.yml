@@ -25,6 +25,9 @@ jobs:
       - run: moon check --target js --deny-warn
       - run: moon test --target js --deny-warn
       - run: moon build cmd/main --target js --deny-warn
+      - run: moon run examples/library --target js
+      - run: moon info --target js
+      - run: git diff --exit-code -- "*.mbti"
       - run: python examples/repair_demo.py
       - name: Check recovery against par2cmdline 1.4.0
         run: python tests/reference_ci.py

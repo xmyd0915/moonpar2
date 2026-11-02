@@ -42,6 +42,8 @@ node /path/to/moonpar2.cjs repair restored photos.par2
 
 ## 正确性验证
 
+MoonBit 应用可以直接使用 `create`、`read_set`、`verify` 和 `repair`，数据来自内存时无需调用命令行。运行 `moon run examples/library --target js` 可查看一个完整的[调用示例](examples/library/main.mbt)。
+
 ```sh
 moon check --target js --deny-warn
 moon test --target js --deny-warn

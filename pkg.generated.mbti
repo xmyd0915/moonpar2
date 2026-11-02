@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "xmyd0915/moonpar2"
+
+// Values
+pub fn create(Array[(String, Bytes)], width? : Int32, recovery_blocks? : Int32) -> Bytes raise
+
+pub fn encode(Array[Array[Int32]], Int32) -> Array[Int32]?
+
+pub fn read_set(Array[Bytes]) -> RecoverySet raise
+
+pub fn recover(Array[Array[Int32]?], Array[Int32], Array[Array[Int32]]) -> Array[Array[Int32]]?
+
+pub fn safe_name(String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct FileStatus {
+  name : String
+  healthy : Bool
+  missing : Bool
+  damaged_slices : Array[Int32]
+}
+
+type RecoverySet
+pub fn RecoverySet::names(Self) -> Array[String]
+pub fn RecoverySet::repair(Self, Map[String, Bytes]) -> Array[(String, Bytes)] raise
+pub fn RecoverySet::verify(Self, Map[String, Bytes]) -> Array[FileStatus]
+
+// Type aliases
+
+// Traits
