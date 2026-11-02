@@ -17,7 +17,7 @@ let parity_tag = b"PAR 2.0\x00RecvSlic"
 let creator_tag = b"PAR 2.0\x00Creator\x00"
 
 ///|
-struct Packet {
+priv struct Packet {
   id : Bytes
   tag : Bytes
   body : Bytes

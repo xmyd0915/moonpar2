@@ -31,7 +31,7 @@ pub fn create(
   if recovery_blocks < 1 || recovery_blocks > MaxParity {
     fail("expected 1 to 32 recovery slices")
   }
-  let names : Map[String, Bool] = {}
+  let names : Map[String, Bool] = Map([])
   let sources : Array[(Member, Array[Bytes])] = []
   let mut total = 0
   let mut slices = 0

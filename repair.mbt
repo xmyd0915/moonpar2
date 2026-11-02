@@ -15,9 +15,9 @@ pub fn RecoverySet::repair(
   let outputs = []
   let mut pos = 0
   let mut recovered = 0
-  for member in self.members {
+  for entry in self.members {
     let buf = @buffer.Buffer()
-    let count = (member.length + self.width - 1) / self.width
+    let count = (entry.length + self.width - 1) / self.width
     for i = 0; i < count; i = i + 1 {
       let words = match scan.blocks[pos] {
         Some(known) => known
@@ -28,14 +28,14 @@ pub fn RecoverySet::repair(
         }
       }
       pos = pos + 1
-      let len = (member.length - i * self.width).min(self.width)
+      let len = (entry.length - i * self.width).min(self.width)
       buf.write_bytes(as_bytes(words)[:len])
     }
     let bytes = buf.to_bytes()
-    if md5(bytes) != member.hash {
-      fail("restored checksum mismatch: " + member.name)
+    if md5(bytes) != entry.hash {
+      fail("restored checksum mismatch: " + entry.name)
     }
-    outputs.push((member.name, bytes))
+    outputs.push((entry.name, bytes))
   }
   outputs
 }
