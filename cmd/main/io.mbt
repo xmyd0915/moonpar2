@@ -36,7 +36,12 @@ extern "js" fn write_new(path : String, bytes : Bytes) -> String =
   #|     stage = fs.mkdtempSync(p.join(p.dirname(path), '.moonpar2-'));
   #|     const tmp = p.join(stage, 'data');
   #|     fs.writeFileSync(tmp, bytes, {flag:'wx'});
-  #|     fs.linkSync(tmp, path);
+  #|     try {
+  #|       fs.linkSync(tmp, path);
+  #|     } catch (error) {
+  #|       if (!['EPERM','ENOTSUP','EOPNOTSUPP','ENOSYS'].includes(error.code)) throw error;
+  #|       fs.copyFileSync(tmp, path, fs.constants.COPYFILE_EXCL);
+  #|     }
   #|     return '';
   #|   } catch(e) { return e.message; }
   #|   finally { if (stage) fs.rmSync(stage, {recursive:true,force:true}); }
