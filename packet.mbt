@@ -17,6 +17,19 @@ let parity_tag = b"PAR 2.0\x00RecvSlic"
 let creator_tag = b"PAR 2.0\x00Creator\x00"
 
 ///|
+let unicode_tag = b"PAR 2.0\x00UniFileN"
+
+///|
+fn unicode_body(entry : Member) -> Bytes {
+  let encoded = @utf16.encode(entry.name, bom=false, endianness=Little)
+  joined([
+    entry.id,
+    encoded,
+    Bytes::make((4 - encoded.length() % 4) % 4, b'\x00'),
+  ])
+}
+
+///|
 priv struct Packet {
   id : Bytes
   tag : Bytes

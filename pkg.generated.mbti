@@ -4,9 +4,13 @@ package "xmyd0915/moonpar2"
 // Values
 pub const MaxSourceBytes : Int32 = 268435456
 
+pub const MaxStreamBytes : UInt64 = 549755813888
+
 pub const MaxVolumeBytes : Int32 = 67108864
 
 pub fn create(Array[(String, Bytes)], width? : Int32, recovery_blocks? : Int32, non_recovery_files? : Array[(String, Bytes)]) -> Bytes raise
+
+pub fn create_stream(Array[FileInfo], (String, UInt64, Int32) -> Bytes raise, width? : Int32, recovery_blocks? : Int32) -> Bytes raise
 
 pub fn encode(Array[Array[Int32]], Int32) -> Array[Int32]?
 
@@ -21,6 +25,12 @@ pub fn safe_path(String) -> Bool
 // Errors
 
 // Types and methods
+pub(all) struct FileInfo {
+  name : String
+  size : UInt64
+  recoverable : Bool
+}
+
 pub(all) struct FileStatus {
   name : String
   healthy : Bool
@@ -31,10 +41,13 @@ pub(all) struct FileStatus {
 
 type RecoverySet
 pub fn RecoverySet::creators(Self) -> Array[String]
+pub fn RecoverySet::files(Self) -> Array[FileInfo]
 pub fn RecoverySet::names(Self) -> Array[String]
 pub fn RecoverySet::recovery_blocks(Self) -> Int32
 pub fn RecoverySet::repair(Self, Map[String, Bytes]) -> Array[(String, Bytes)] raise
+pub fn RecoverySet::repair_stream(Self, (String) -> UInt64? raise, (String, UInt64, Int32) -> Bytes raise, (String, UInt64, Bytes) -> Unit raise) -> Unit raise
 pub fn RecoverySet::verify(Self, Map[String, Bytes]) -> Array[FileStatus]
+pub fn RecoverySet::verify_stream(Self, (String) -> UInt64? raise, (String, UInt64, Int32) -> Bytes raise) -> Array[FileStatus] raise
 pub fn RecoverySet::warnings(Self) -> Array[String]
 
 // Type aliases

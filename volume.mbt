@@ -57,6 +57,7 @@ fn read_set_impl(
   let mut id : Bytes? = None
   let descriptors : Map[Bytes, Bytes] = Map([])
   let sums : Map[Bytes, Bytes] = Map([])
+  let unicode_names : Map[Bytes, Bytes] = Map([])
   let raw_parity : Map[Int32, Bytes] = Map([])
   let notices = []
   for vi = 0; vi < volumes.length(); vi = vi + 1 {
@@ -88,6 +89,7 @@ fn read_set_impl(
       if packet.tag != main_tag &&
         packet.tag != desc_tag &&
         packet.tag != sums_tag &&
+        packet.tag != unicode_tag &&
         packet.tag != parity_tag {
         continue
       }
@@ -105,6 +107,8 @@ fn read_set_impl(
         record(descriptors, b)
       } else if packet.tag == sums_tag {
         record(sums, b)
+      } else if packet.tag == unicode_tag {
+        record(unicode_names, b)
       } else if packet.tag == parity_tag {
         if b.length() < 8 {
           fail("short recovery packet")
@@ -145,7 +149,7 @@ fn read_set_impl(
   }
   let members = []
   let names : Map[String, Bool] = Map([])
-  let mut source_total = 0
+  let mut source_total = 0UL
   let mut slices = 0
   let ids : Map[Bytes, Bool] = Map([])
   for i = 0; i < total_files; i = i + 1 {
@@ -162,14 +166,16 @@ fn read_set_impl(
     if desc.length() <= 56 {
       fail("invalid description")
     }
-    let length = le32(desc, 48).reinterpret_as_int()
-    if length < 0 ||
-      le32(desc, 52) != 0U ||
-      length > MaxSourceBytes - source_total {
+    let length = le32(desc, 48).to_uint64() | (le32(desc, 52).to_uint64() << 32)
+    if length > MaxStreamBytes - source_total {
       fail("unsupported file length")
     }
     source_total = source_total + length
-    let blocks = (length + width - 1) / width
+    let block_count = (length + width.to_uint64() - 1UL) / width.to_uint64()
+    if recoverable && block_count > MaxSlices.to_uint64() {
+      fail("too many source slices")
+    }
+    let blocks = if recoverable { block_count.to_int() } else { 0 }
     if recoverable {
       slices = slices + blocks
     }
@@ -184,7 +190,19 @@ fn read_set_impl(
     if desc.length() - end > 3 || md5(desc[32:end].to_owned()) != fid {
       fail("invalid file identifier")
     }
-    let name = @utf8.decode(desc[56:end])
+    let fallback = @utf8.decode(desc[56:end])
+    let name = if unicode_names.get(fid) is Some(u) {
+      let mut last = u.length()
+      if last >= 18 && u[last - 1] == b'\x00' && u[last - 2] == b'\x00' {
+        last = last - 2
+      }
+      @utf16.decode(u[16:last], ignore_bom=true, endianness=Little)
+    } else {
+      fallback
+    }
+    if !safe_path(fallback) {
+      fail("unsafe fallback path")
+    }
     claim_path(names, name)
     members.push({
       id: fid,

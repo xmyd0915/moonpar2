@@ -2,7 +2,7 @@
 priv struct Member {
   id : Bytes
   name : String
-  length : Int32
+  length : UInt64
   hash : Bytes
   desc : Bytes
   sums : Bytes
@@ -21,7 +21,7 @@ pub fn safe_name(name : String) -> Bool {
   }
   for c in name {
     if c < ' ' ||
-      c > '~' ||
+      c == '\u007f' ||
       ['/', '\\', ':', '<', '>', '"', '|', '?', '*'].contains(c) {
       return false
     }
@@ -124,43 +124,6 @@ fn as_bytes(words : Array[Int32]) -> Bytes {
   Bytes::makei(words.length() * 2, fn(i) {
     (words[i / 2] >> (8 * (i % 2))).to_byte()
   })
-}
-
-///|
-fn describe(
-  name : String,
-  data : Bytes,
-  width : Int32,
-  recoverable~ : Bool = true,
-) -> Member {
-  let prefix = md5(data[:data.length().min(16384)].to_owned())
-  let buf = @buffer.Buffer()
-  buf.write_bytes(prefix)
-  buf.write_uint64_le(data.length().to_uint64())
-  let filename = @utf8.encode(name)
-  buf.write_bytes(filename)
-  let id = md5(buf.to_bytes())
-  for i = 0; i < (4 - filename.length() % 4) % 4; i = i + 1 {
-    buf.write_byte(b'\x00')
-  }
-  let hash = md5(data)
-  let desc = joined([id, hash, buf.to_bytes()])
-  let sums = @buffer.Buffer()
-  sums.write_bytes(id)
-  for at = 0; at < data.length(); at = at + width {
-    let b = slice_at(data, at, width)
-    sums.write_bytes(md5(b))
-    sums.write_uint_le(crc32(b))
-  }
-  {
-    id,
-    name,
-    length: data.length(),
-    hash,
-    desc,
-    sums: sums.to_bytes(),
-    recoverable,
-  }
 }
 
 ///|

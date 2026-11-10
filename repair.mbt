@@ -5,6 +5,13 @@ pub fn RecoverySet::repair(
   self : RecoverySet,
   files : Map[String, Bytes],
 ) -> Array[(String, Bytes)] raise {
+  let mut total = 0UL
+  for entry in self.members {
+    total = total + entry.length
+  }
+  if total > MaxSourceBytes.to_uint64() {
+    fail("use streaming repair for sets over 256 MiB")
+  }
   let scan = self.scan(files)
   let exps = self.parity.keys().to_array()
   exps.sort()
@@ -36,7 +43,7 @@ pub fn RecoverySet::repair(
       continue
     }
     let file_blocks : Array[BytesView] = []
-    let count = (entry.length + self.width - 1) / self.width
+    let count = (entry.length.to_int() + self.width - 1) / self.width
     for i = 0; i < count; i = i + 1 {
       let block = match scan.blocks[pos] {
         Some(known) => known
@@ -50,7 +57,7 @@ pub fn RecoverySet::repair(
       file_blocks.push(block)
     }
     // Allocate the result once instead of copying an entire file-sized Buffer.
-    let bytes = Bytes::makei(entry.length, fn(i) {
+    let bytes = Bytes::makei(entry.length.to_int(), fn(i) {
       file_blocks[i / self.width][i % self.width]
     })
     if md5(bytes) != entry.hash {

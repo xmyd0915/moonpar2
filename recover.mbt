@@ -1,6 +1,65 @@
 // Return recovered slices in input order, or None for an unsolvable system.
 
 ///|
+/// Eliminate small coefficients separately without duplicating payload matrices.
+fn decode_residual(
+  missing : Array[Int32],
+  bases : Array[Int32],
+  exponents : Array[Int32],
+  rows : Array[Array[Int32]],
+) -> Array[Array[Int32]]? {
+  let n = missing.length()
+  if n == 0 {
+    return Some([])
+  }
+  if rows.length() < n {
+    return None
+  }
+  let width = rows[0].length()
+  let coeff = exponents.map(fn(e) {
+    missing.map(fn(index) { power(bases[index], e) })
+  })
+  for col = 0; col < n; col = col + 1 {
+    let mut pivot = col
+    while pivot < rows.length() && coeff[pivot][col] == 0 {
+      pivot = pivot + 1
+    }
+    if pivot == rows.length() {
+      return None
+    }
+    let tmp = rows[col]
+    rows[col] = rows[pivot]
+    rows[pivot] = tmp
+    let ct = coeff[col]
+    coeff[col] = coeff[pivot]
+    coeff[pivot] = ct
+    let inv = power(coeff[col][col], 65534)
+    for k = col; k < n; k = k + 1 {
+      coeff[col][k] = multiply(coeff[col][k], inv)
+    }
+    for k = 0; k < width; k = k + 1 {
+      rows[col][k] = multiply(rows[col][k], inv)
+    }
+    for j = 0; j < rows.length(); j = j + 1 {
+      if j == col {
+        continue
+      }
+      let factor = coeff[j][col]
+      if factor == 0 {
+        continue
+      }
+      for k = col; k < n; k = k + 1 {
+        coeff[j][k] = coeff[j][k] ^ multiply(factor, coeff[col][k])
+      }
+      for k = 0; k < width; k = k + 1 {
+        rows[j][k] = rows[j][k] ^ multiply(factor, rows[col][k])
+      }
+    }
+  }
+  Some(Array::makei(n, fn(i) { rows[i] }))
+}
+
+///|
 pub fn recover(
   data : Array[Array[Int32]?],
   exponents : Array[Int32],

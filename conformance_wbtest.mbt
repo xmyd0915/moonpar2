@@ -154,7 +154,7 @@ test "lost critical metadata and oversized length fail without panicking" {
     if p.tag == desc_tag {
       let body = Bytes::makei(p.body.length(), fn(i) {
         if i == 52 {
-          b'\x01'
+          b'\xff'
         } else {
           p.body[i]
         }

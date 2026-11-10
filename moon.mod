@@ -1,6 +1,6 @@
 name = "xmyd0915/moonpar2"
 
-version = "0.2.0"
+version = "0.3.0"
 
 license = "MIT"
 
@@ -10,4 +10,4 @@ readme = "README.md"
 
 preferred_target = "js"
 
-description = "PAR2 directory recovery with damaged-volume tolerance"
+description = "Streaming PAR2 recovery for Unicode directory trees"

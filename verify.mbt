@@ -21,14 +21,16 @@ fn RecoverySet::scan(self : RecoverySet, files : Map[String, Bytes]) -> Scan {
     let source = files.get(m.name)
     let bad = []
     let count = if m.recoverable {
-      (m.length + self.width - 1) / self.width
+      ((m.length + self.width.to_uint64() - 1UL) / self.width.to_uint64()).to_int()
     } else {
       0
     }
     for i = 0; i < count; i = i + 1 {
-      let start = i * self.width
-      let end = (start + self.width).min(m.length)
-      if source is Some(b) && end <= b.length() {
+      let start64 = i.to_uint64() * self.width.to_uint64()
+      let end64 = minimum(start64 + self.width.to_uint64(), m.length)
+      if source is Some(b) && end64 <= b.length().to_uint64() {
+        let start = start64.to_int()
+        let end = end64.to_int()
         let block = if end - start == self.width {
           b[start:end]
         } else {
@@ -45,7 +47,7 @@ fn RecoverySet::scan(self : RecoverySet, files : Map[String, Bytes]) -> Scan {
       blocks.push(None)
     }
     let healthy = source is Some(bytes) &&
-      bytes.length() == m.length &&
+      bytes.length().to_uint64() == m.length &&
       bad.is_empty() &&
       md5(bytes) == m.hash
     status.push({
