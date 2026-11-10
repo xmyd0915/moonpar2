@@ -1,0 +1,6 @@
+import {
+  "xmyd0915/moonpar2" @par,
+  "moonbitlang/core/buffer",
+}
+
+pkgtype(kind: "executable")

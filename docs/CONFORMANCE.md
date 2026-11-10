@@ -47,7 +47,7 @@ MoonPar2 的符合性目标是完整理解 [PAR2 2.0 核心格式](https://parch
 
 Unicode Filename（UTF-16LE）已实现读写及覆盖名称语义，同时支持 par2cmdline / MultiPar 通行的 UTF-8 FileDesc 名称。覆盖名称与回退名称均执行路径校验。ASCII/Unicode Comment、Input File Slice、Recovery File Slice Checksum、Packed Main、Packed Recovery Slice 尚未实现；有效未知包会被忽略，缺少核心 Main 的 Packed 集合明确失败。
 
-## 跨工具结果的边界
+## 独立参考验证
 
 参考程序固定为 par2cmdline 1.4.0，下载归档有 SHA-256 校验。Main、FileDesc、IFSC、RecvSlic 在同样输入及参数下逐字节相等。目录和受损卷测试将两个工具分别作为写入器，再分别由两个工具修复；每个修复器只拿到测试中的受损卷，不会悄悄使用完好的旁路分卷。
 

@@ -27,6 +27,7 @@ jobs:
       - run: moon test --target wasm-gc --deny-warn
       - run: moon build cmd/main --target js --deny-warn
       - run: moon run examples/library --target js
+      - run: moon run examples/streaming --target js
       - run: moon info --target js
       - run: git diff --exit-code -- "*.mbti"
       - run: python examples/repair_demo.py

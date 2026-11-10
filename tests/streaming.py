@@ -64,7 +64,6 @@ def exercise(folder,size,reference):
     if reference:
         subprocess.run([reference,"r","-q","-q","-t1","backup.par2"],cwd=folder,check=True)
         for name,h in hashes.items():assert digest(source/name)==h
-    # Huge declarations fail before opening a source or creating an output.
     result={"bytes":size,"result":"passed","sha256":hashes,"measurements":measurements}
     print("PASS: large file SHA-256, reference repair, bounded heap and staging cleanup",flush=True)
     return result

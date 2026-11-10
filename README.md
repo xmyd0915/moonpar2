@@ -39,6 +39,8 @@ moon add xmyd0915/moonpar2@0.3.0
 
 在包配置导入 `"xmyd0915/moonpar2" @par`，通过 `create`、`read_set`、`verify`、`repair` 处理内存数据。大文件应用使用 `create_stream`、`verify_stream`、`repair_stream`，通过回调提供分块读写；长度及偏移采用 UInt64。核心库不访问磁盘、不调用外部 PAR2 程序。完整[调用示例](examples/library/main.mbt)可以通过 `moon run examples/library --target js` 运行。
 
+接入磁盘或对象存储时，参阅[流式接口指南](docs/STREAMING.md)及可运行的 [Unicode 恢复示例](examples/streaming/main.mbt)。
+
 ## 支持范围
 
 | 项目 | 0.3.0 |
