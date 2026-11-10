@@ -36,6 +36,23 @@ def main():
                         "_build/capacity.json"], check=True)
         subprocess.run([sys.executable, str(Path(__file__).with_name("conformance.py")),
                         "--par2", str(exe), "--report", "_build/conformance.json"], check=True)
+        subprocess.run([sys.executable, str(Path(__file__).with_name("unicode_interop.py")),
+                        "--par2", str(exe)], check=True)
+        subprocess.run([sys.executable, str(Path(__file__).with_name("streaming.py")),
+                        "--mib", "1024", "--par2", str(exe),
+                        "--report", "_build/streaming.json"], check=True)
+        if sys.platform == "win32":
+            url = "https://github.com/Yutaka-Sawada/MultiPar/releases/download/v1.3.3.6/MultiPar1336.zip"
+            with urlopen(url, timeout=60) as response:
+                payload = response.read()
+            if sha256(payload).hexdigest() != "7c60412d8ac2183afb1812ac145cbe0d0dce2a8156beaf917f65b1668a1fcc7b":
+                raise ValueError("unexpected MultiPar archive digest")
+            multi = Path(tmp) / "par2j64.exe"
+            with ZipFile(BytesIO(payload)) as archive:
+                name, = [n for n in archive.namelist() if PurePosixPath(n).name == "par2j64.exe"]
+                multi.write_bytes(archive.read(name))
+            subprocess.run([sys.executable, str(Path(__file__).with_name("unicode_interop.py")),
+                            "--multipar", str(multi)], check=True)
 
 
 if __name__ == "__main__":

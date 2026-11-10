@@ -1,6 +1,7 @@
 """Exercise the built CLI and an independently installed par2cmdline."""
 import argparse
 import hashlib
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -59,6 +60,7 @@ def exercise(folder, reference, create_with_reference):
     assert (folder / "alpha.bin").read_bytes() == damaged
     assert not (folder / "photo.dat").exists()
     call(cli + ["repair", "restored", *volumes], folder, 2)
+    shutil.rmtree(out)
     call([reference, "r", "-q", "-t1", "set.par2"], folder)
     for name, data in originals.items():
         assert sha((folder / name).read_bytes()) == sha(data)

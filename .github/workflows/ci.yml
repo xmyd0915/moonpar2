@@ -8,7 +8,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,7 +30,8 @@ jobs:
       - run: moon info --target js
       - run: git diff --exit-code -- "*.mbti"
       - run: python examples/repair_demo.py
-      - name: Check directories, damaged volumes and 256 MiB sets against par2cmdline 1.4.0
+      - run: python tests/stream_failures.py
+      - name: Check directories, Unicode and bounded-memory large-file recovery
         run: python tests/reference_ci.py
       - uses: actions/upload-artifact@v4
         with:
@@ -38,3 +39,4 @@ jobs:
           path: |
             _build/conformance.json
             _build/capacity.json
+            _build/streaming.json

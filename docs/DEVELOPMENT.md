@@ -6,6 +6,7 @@
 - `manifest.mbt` 处理文件描述、路径与块视图；`create.mbt` 写卷。
 - `field.mbt`、`encode.mbt`、`recover.mbt` 处理有限域及恢复方程。
 - `verify.mbt` 与 `repair.mbt` 提供文件级接口；Node I/O 集中在 `cmd/main`。
+- `stream.mbt` 提供分块 I/O 回调；`checksum.mbt` 提供增量 MD5；`cmd/main/stream_io.mbt` 负责磁盘分块与暂存交付。
 - 新增格式功能必须给出规范位置、正例、错误输入以及独立参考验证；无法互操作的功能在矩阵中单列。
 
 提交前运行格式检查、全目标静态检查、JS/Wasm GC 测试、演示及互操作入口。公有接口变更后运行 `moon info --target js`，提交生成的 `.mbti`。

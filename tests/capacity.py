@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -59,11 +60,6 @@ def exercise(folder, size, reference):
     if reference:
         subprocess.run([reference, "v", "-q", "-q", "--full-hash", "backup.par2"],
                        cwd=folder, check=True, stdout=subprocess.DEVNULL)
-    if size == 256*MIB:
-        (folder / "one.bin").write_bytes(b"x")
-        result = run(folder, probe, "over capacity",
-                     ["create", "over.par2", *inputs, "one.bin"], 2)
-        assert "size budget" in result and not (folder / "over.par2").exists()
     note.unlink()
     with archive.open("r+b") as f:
         f.seek(size // 2)
@@ -78,6 +74,7 @@ def exercise(folder, size, reference):
     with zipfile.ZipFile(folder / "out/photos.zip") as z:
         assert z.testzip() is None
     if reference:
+        shutil.rmtree(folder / "out")
         subprocess.run([reference, "r", "-q", "-q", "-t1", "backup.par2"],
                        cwd=folder, check=True, stdout=subprocess.DEVNULL)
         for name, expected in originals.items():
