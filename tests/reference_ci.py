@@ -32,7 +32,10 @@ def main():
         subprocess.run([sys.executable, str(Path(__file__).with_name("interop.py")),
                         "--par2", str(exe)], check=True)
         subprocess.run([sys.executable, str(Path(__file__).with_name("capacity.py")),
-                        "--mib", "64", "--par2", str(exe)], check=True)
+                        "--mib", "256", "--par2", str(exe), "--report",
+                        "_build/capacity.json"], check=True)
+        subprocess.run([sys.executable, str(Path(__file__).with_name("conformance.py")),
+                        "--par2", str(exe), "--report", "_build/conformance.json"], check=True)
 
 
 if __name__ == "__main__":

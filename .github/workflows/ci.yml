@@ -30,5 +30,11 @@ jobs:
       - run: moon info --target js
       - run: git diff --exit-code -- "*.mbti"
       - run: python examples/repair_demo.py
-      - name: Check small and 64 MiB recovery sets against par2cmdline 1.4.0
+      - name: Check directories, damaged volumes and 256 MiB sets against par2cmdline 1.4.0
         run: python tests/reference_ci.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conformance-${{ matrix.os }}
+          path: |
+            _build/conformance.json
+            _build/capacity.json

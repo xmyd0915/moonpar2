@@ -1,6 +1,7 @@
 """Exercise an exact-size ZIP backup through the built Node CLI."""
 import argparse
 import hashlib
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -10,6 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "_build/js/debug/build/cmd/main/main.js"
 MIB = 1024**2
+MEASUREMENTS = []
 
 
 def run(folder, probe, label, args, expected=0):
@@ -19,7 +21,9 @@ def run(folder, probe, label, args, expected=0):
     if p.returncode != expected:
         raise RuntimeError(f"{label}: {p.stdout}\n{p.stderr}")
     rss = next(int(line[4:]) for line in p.stderr.splitlines() if line.startswith("RSS:"))
-    print(f"{label:16} {perf_counter()-start:.2f} s, peak RSS {rss/1024:.1f} MiB", flush=True)
+    elapsed = perf_counter()-start
+    MEASUREMENTS.append({"command":label,"seconds":round(elapsed,3),"peak_rss_mib":round(rss/1024,1)})
+    print(f"{label:16} {elapsed:.2f} s, peak RSS {rss/1024:.1f} MiB", flush=True)
     return p.stdout + p.stderr
 
 
@@ -55,7 +59,7 @@ def exercise(folder, size, reference):
     if reference:
         subprocess.run([reference, "v", "-q", "-q", "--full-hash", "backup.par2"],
                        cwd=folder, check=True, stdout=subprocess.DEVNULL)
-    if size == 64*MIB:
+    if size == 256*MIB:
         (folder / "one.bin").write_bytes(b"x")
         result = run(folder, probe, "over capacity",
                      ["create", "over.par2", *inputs, "one.bin"], 2)
@@ -98,8 +102,13 @@ def exercise(folder, size, reference):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mib", type=int, choices=range(1, 65), default=8, metavar="1..64")
+    ap.add_argument("--mib", type=int, choices=range(1, 257), default=8, metavar="1..256")
     ap.add_argument("--par2", help="also verify and repair with par2cmdline 1.4.0")
+    ap.add_argument("--report", type=Path)
     args = ap.parse_args()
     with tempfile.TemporaryDirectory(prefix="moonpar2-capacity-") as tmp:
         exercise(Path(tmp), args.mib * MIB, args.par2)
+    if args.report:
+        args.report.parent.mkdir(parents=True,exist_ok=True)
+        args.report.write_text(json.dumps({"bytes":args.mib*MIB,"result":"passed",
+                                          "measurements":MEASUREMENTS},indent=2)+"\n",encoding="utf-8")

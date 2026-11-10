@@ -1,68 +1,73 @@
 # MoonPar2
 
-MoonPar2 为同一目录中的文件创建 PAR2 恢复卷。备份中的文件丢失或部分损坏后，可以用恢复卷定位坏块，把完整文件写到一个新目录。也可以读取 par2cmdline 生成的索引和分卷。
+用 MoonBit 创建、校验和修复 PAR2 恢复卷。保护多级目录中的文档、照片和归档；文件误删或局部损坏后，将原始内容重建到新目录。恢复卷自身有局部损坏时，工具会报告并跳过坏包，继续使用其余有效数据。
 
-## 构建和演示
+## 先运行一次完整演示
 
-安装 [MoonBit 工具链](https://www.moonbitlang.com/download/) 和 Node.js 24。下面的命令在仓库根目录运行。最后一步需要 Python 3，只用于演示。
+安装 [MoonBit](https://www.moonbitlang.com/download/)、Node.js 24 和 Python 3。在仓库根目录执行：
 
 ```sh
 moon build cmd/main --target js
-node _build/js/debug/build/cmd/main/main.js --help
 python examples/repair_demo.py
 ```
 
-演示在临时目录中生成两个小文件和恢复卷，删除 `notes.txt`，改坏 `scan.bin` 的最后一个字节，再将两份文件还原到新目录。成功时会看到两行 `SHA-256 matches`。
+演示创建一个多级目录备份，然后删除文本和空文件、改坏照片数据，并损坏恢复卷中的一个包。工具修复三份文件，脚本逐一验证 SHA-256。输入、预期输出和自己的目录用法见[演示指南](docs/WALKTHROUGH.md)。
 
-## 保护和修复自己的文件
+## 日常使用
 
-把编译好的 `_build/js/debug/build/cmd/main/main.js` 复制到工具目录，命名为 `moonpar2.cjs`。在待备份的文件夹中运行以下命令，将示例中的脚本路径替换为实际位置。
+构建后将 `_build/js/debug/build/cmd/main/main.js` 复制为 `moonpar2.cjs`。在数据根目录执行：
 
 ```sh
-node /path/to/moonpar2.cjs create photos.par2 scan.bin notes.txt
-node /path/to/moonpar2.cjs verify photos.par2
-node /path/to/moonpar2.cjs repair restored photos.par2
+node /path/to/moonpar2.cjs create --recovery-blocks 8 backup.par2 documents photos
+node /path/to/moonpar2.cjs inspect backup.par2
+node /path/to/moonpar2.cjs verify backup.par2
+node /path/to/moonpar2.cjs repair restored backup.par2
 ```
 
-- **创建**会在当前目录生成一个卷，包含文件清单、分块校验值和恢复块。默认写入四个恢复块，可用 `create --recovery-blocks 8 photos.par2 scan.bin notes.txt` 调整冗余（1 至 32 块）。卷名必须尚未被使用。
-- **校验**从第一个卷所在目录读取源文件，逐个报告正常、缺失或损坏。退出码 0 表示全部正常，1 表示发现损坏或缺失，2 表示参数、输入格式或文件操作错误。
-- **修复**先在内存中重建并验证所有文件，再写入指定的新目录。原始文件不会被覆盖。若磁盘写入中断，使用另一个新目录重试。
-- 对于官方工具生成的多个卷，显式传入需要的分卷，例如 `repair restored set.par2 set.vol0+1.par2 set.vol1+2.par2`。只有索引时仍可校验，但修复需要足够的独立恢复块。
+- `create` 接受文件或目录，递归收集普通文件。默认生成 4 个恢复块，可选 1–32 个；`--slice-size` 指定块宽，省略则自动选择。目标卷必须不存在。
+- `inspect` 列出创建工具、文件角色、可用恢复块和坏包诊断，无需读取源文件。
+- `verify` 检查源文件。退出码 0 为全部正常，1 为文件缺失或损坏，2 为参数、格式或文件操作错误。坏包告警与源文件状态分别报告。
+- `repair` 在整文件校验通过后写入新的输出目录，自动建立子目录，保留原件。恢复块不足时返回 2，不创建输出目录；写盘中断后请使用另一个新目录重试。
+- `--base-dir ROOT` 显式指定数据根目录。读取默认以第一个卷所在目录为根；多个卷需要显式列出。
+- `create --check-only FILE` 将文件记入仅校验列表；修复输出只包含参与恢复的文件。这一选项有[第三方兼容限制](docs/CONFORMANCE.md)，与 par2cmdline 交换卷时建议使用默认模式。
 
-## 使用场景
+## 作为 MoonBit 库
 
-- **归档交付。** 把 ZIP 文件和目录清单一起生成恢复卷。收件人可以离线检查下载结果，修复局部损坏后重新打开 ZIP。
-- **找回误删的文件。** 同一组中的小文件丢失时，从索引读回文件名及校验值，恢复块足够时将整组写到新目录。一个丢失的文件消耗的恢复块数等于文件大小除以块大小后向上取整。
-- **接入已有工具。** MoonBit 应用可以直接读取 par2cmdline 的索引和分卷，列出坏块或重建内容。使用 par2cmdline 的另一端也能修复 MoonPar2 生成的备份。
+```sh
+moon add xmyd0915/moonpar2@0.2.0
+```
+
+在包配置导入 `"xmyd0915/moonpar2" @par`，通过 `create`、`read_set`、`verify`、`repair` 处理内存数据。核心库不访问磁盘、不调用外部 PAR2 程序。完整[调用示例](examples/library/main.mbt)可以通过 `moon run examples/library --target js` 运行。
 
 ## 支持范围
 
-适合照片、扫描件、文档和中小型 ZIP 交付包。输入与修复结果在内存中处理。当前按固定偏移检查数据，不扫描重命名的文件或发生字节插入、删除后移位的文件。
-
-| 项目 | 范围 |
+| 项目 | 0.2.0 |
 | --- | --- |
-| 源文件 | 最多 64 个非空普通文件，总计 64 MiB；单层目录，使用可移植的 ASCII 文件名 |
-| 分块 | 不超过 4 MiB 的文件集默认使用 4 KiB 块；更大集合自动选择 32–256 KiB。读取时支持 4 字节的倍数，最大 256 KiB，最多 4096 个源块 |
-| 恢复数据 | 读取最多 32 个不同的恢复块，所有输入卷合计最多 16 MiB |
-| 运行环境 | 核心库使用 MoonBit；命令行使用 Node.js 读写本地文件，无运行时网络服务 |
+| 文件与目录 | 最多 4096 个普通文件，含空文件；多级相对路径，可移植 ASCII 名称 |
+| 容量 | 总计 256 MiB，整组在内存中处理 |
+| 源块 | 最多 32768 个，块宽为 4 的倍数、至多 256 KiB |
+| 恢复数据 | 最多 32 个不同恢复块，输入卷总计 64 MiB |
+| 容错 | 坏包跳过、错位重同步、重复元数据、多卷合并、未知包忽略 |
+| 路径保护 | 拒绝越界、绝对路径、设备名、冲突布局、符号链接与目录联接 |
 
-对于正好 64 MiB 的集合，自动块宽为 256 KiB。8 个恢复块占约 2 MiB（另加元数据），可以补回最多 8 个丢失块，前提是相应的恢复方程线性独立。分散在多个块上的损坏会分别计数。
+修复能力取决于损失块数和剩余恢复方程的独立性，不等于一定能恢复整个丢失文件。256 MiB 集合默认块宽为 256 KiB；8 个恢复块约占 2 MiB 加元数据，可修复至多 8 个丢失块。空目录、Unicode 扩展、源数据错位扫描和大文件流式处理未实现。
 
-## 正确性验证
+本机 Windows / Node.js 24 对 256 MiB 测试集的一次测量：创建 11.44 秒，修复 16.28 秒，修复峰值内存约 597 MiB。速度随硬件、源块和恢复块数量变化。
 
-MoonBit 应用可以直接使用 `create`、`read_set`、`verify` 和 `repair`，数据来自内存时无需调用命令行。运行 `moon run examples/library --target js` 可查看一个完整的[调用示例](examples/library/main.mbt)。
+## 验证与维护
+
+[PAR2 2.0 覆盖矩阵](docs/CONFORMANCE.md)逐项说明核心包、路径、资源预算和未实现扩展。[GitHub Actions](https://github.com/xmyd0915/moonpar2/actions)在 Ubuntu 和 Windows 运行同一组测试，并保存覆盖结果。
 
 ```sh
-moon check --target js --deny-warn
+moon fmt --check
+moon check --target all --deny-warn
 moon test --target js --deny-warn
+moon test --target wasm-gc --deny-warn
 moon build cmd/main --target js --deny-warn
-python tests/interop.py --par2 /path/to/par2
+python tests/conformance.py --par2 /path/to/par2 --report _build/conformance.json
+python tests/capacity.py --mib 256 --par2 /path/to/par2 --report _build/capacity.json
 ```
 
-交叉测试使用 [par2cmdline 1.4.0](https://github.com/Parchive/par2cmdline/releases/tag/v1.4.0)。两种工具分别创建恢复卷；随后同时改坏一个文件、删除另一个，分别用两个工具修复并比对原件 SHA-256。测试还覆盖恢复数据不足和输出路径已存在的情况。
+参考工具固定为 [par2cmdline 1.4.0](https://github.com/Parchive/par2cmdline/releases/tag/v1.4.0)。双方分别写入、读取和修复目录备份，修复结果以 SHA-256 比对；四类核心数据包还做逐字节对照。仅校验列表的已知互操作限制独立报告，不计入通过项。
 
-格式依据 [Parity Volume Set Specification 2.0](https://parchive.sourceforge.net/docs/specifications/parity-volume-spec/article-spec.html)。命令行调用自己的 MoonBit 编解码实现；par2cmdline 仅用于交叉验证。许可证为 [MIT](LICENSE)。
-
-### 复现容量边界
-
-运行 `python tests/capacity.py --mib 64`。脚本生成合计恰好 64 MiB 的 ZIP 和清单，校验后破坏 ZIP 中部并删除清单，再检查修复文件的 SHA-256 及 ZIP 内部 CRC。它还检查多一个字节时不会留下输出卷。传入 `--par2 /path/to/par2` 可用另一实现校验和修复同一组文件，再让 MoonPar2 读取对方按不同块宽生成的分卷并执行修复。脚本按命令报告耗时和 Node 进程峰值内存。
+许可证：[MIT](LICENSE)。维护说明和版本变化见[开发指南](docs/DEVELOPMENT.md)及[变更记录](CHANGELOG.md)。
