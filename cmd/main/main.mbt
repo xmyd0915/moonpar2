@@ -23,7 +23,7 @@ fn run(args : Array[String]) -> Int32 raise {
     return 0
   }
   if args == ["--version"] {
-    println("MoonPar2 0.2.0")
+    println("MoonPar2 0.3.0")
     return 0
   }
   guard args.length() >= 2 else { fail(usage) }
@@ -67,28 +67,21 @@ fn run(args : Array[String]) -> Int32 raise {
     if filenames.length() + check_names.length() > 4096 {
       fail("more than 4096 files")
     }
-    let inputs = []
-    let check_inputs = []
-    let mut budget = @par.MaxSourceBytes
+    let inputs : Array[@par.FileInfo] = []
     let groups = [filenames, check_names]
     for gi = 0; gi < groups.length(); gi = gi + 1 {
       for name in groups[gi] {
-        guard read(base + "/" + name, budget) is Some(bytes) else {
+        guard size_of(base + "/" + name) is Some(size) else {
           fail("missing input: " + name)
         }
-        budget = budget - bytes.length()
-        if gi == 0 {
-          inputs.push((name, bytes))
-        } else {
-          check_inputs.push((name, bytes))
-        }
+        inputs.push({ name, size, recoverable: gi == 0, })
       }
     }
-    let bytes = @par.create(
+    let bytes = @par.create_stream(
       inputs,
+      (name, at, n) => chunk(base + "/" + name, at, n),
       width?,
       recovery_blocks=parity,
-      non_recovery_files=check_inputs,
     )
     check_io(write_new(dest, bytes))
     println("created " + dest)
@@ -127,17 +120,14 @@ fn run(args : Array[String]) -> Int32 raise {
   }
   let base = base_opt.unwrap_or(parent(args[start]))
   check_io(check_path(base))
-  let sources : Map[String, Bytes] = Map([])
-  let mut source_budget = @par.MaxSourceBytes + @par.MaxVolumeBytes
-  for name in set.names() {
-    if read(base + "/" + name, source_budget) is Some(b) {
-      sources[name] = b
-      source_budget = source_budget - b.length()
-    }
-  }
   if op == "verify" {
     let mut code = 0
-    for status in set.verify(sources) {
+    for
+      status in set.verify_stream(name => size_of(base + "/" + name), (
+        name,
+        at,
+        n,
+      ) => chunk(base + "/" + name, at, n)) {
       let kind = if status.recoverable { "" } else { " [check-only]" }
       if status.healthy {
         println("ok " + status.name + kind)
@@ -151,18 +141,14 @@ fn run(args : Array[String]) -> Int32 raise {
     }
     return code
   }
-  let outputs = set.repair(sources) catch {
+  repair_disk(set, base, args[at]) catch {
     e => fail(e.to_string() + "; creators: " + set.creators().join("; "))
   }
-  check_io(check_path(args[at]))
-  check_io(new_dir(args[at]))
-  for pair in outputs {
-    let path = args[at] + "/" + pair.0
-    check_io(check_path(path))
-    check_io(mkdir_parents(path))
-    check_io(write_new(path, pair.1))
-  }
-  println("recovered \{outputs.length()} files into " + args[at])
+  println(
+    "recovered \{set.files().filter(fn(f){f.recoverable}).length()} files into " +
+    args[at],
+  )
+
   0
 }
 

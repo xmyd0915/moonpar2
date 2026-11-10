@@ -41,15 +41,6 @@ extern "js" fn walk_files(
   #| }
 
 ///|
-extern "js" fn mkdir_parents(path : String) -> String =
-  #| path => {
-  #|   try {
-  #|     const fs=process.getBuiltinModule('fs'),p=process.getBuiltinModule('path');
-  #|     fs.mkdirSync(p.dirname(path),{recursive:true}); return '';
-  #|   } catch(e){return e.message;}
-  #| }
-
-///|
 fn collect(root : String, name : String) -> Array[String] raise {
   if !@par.safe_path(name) {
     fail("expected a safe relative input path: " + name)

@@ -49,10 +49,6 @@ extern "js" fn write_new(path : String, bytes : Bytes) -> String =
   #| }
 
 ///|
-extern "js" fn new_dir(path : String) -> String =
-  #| path => {try {process.getBuiltinModule('fs').mkdirSync(path); return ''} catch(e){return e.message}}
-
-///|
 extern "js" fn parent(path : String) -> String =
   #| path => process.getBuiltinModule('path').dirname(path)
 
