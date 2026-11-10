@@ -22,6 +22,8 @@ pub fn safe_name(String) -> Bool
 
 pub fn safe_path(String) -> Bool
 
+pub fn split_volume(Bytes, recovery_blocks_per_volume? : Int32) -> Array[Bytes] raise
+
 // Errors
 
 // Types and methods
