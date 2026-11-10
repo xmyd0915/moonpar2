@@ -6,29 +6,30 @@ priv struct Member {
   hash : Bytes
   desc : Bytes
   sums : Bytes
+  recoverable : Bool
 }
 
 ///|
 pub fn safe_name(name : String) -> Bool {
   if name.is_empty() ||
-    name.length() > 180 ||
-    name.has_prefix(".") ||
+    name.length() > 255 ||
+    name == "." ||
+    name == ".." ||
     name.has_suffix(".") ||
     name.has_suffix(" ") {
     return false
   }
   for c in name {
-    if !((c >= 'a' && c <= 'z') ||
-      (c >= 'A' && c <= 'Z') ||
-      (c >= '0' && c <= '9') ||
-      c == '-' ||
-      c == '_' ||
-      c == '.' ||
-      c == ' ') {
+    if c < ' ' ||
+      c > '~' ||
+      ['/', '\\', ':', '<', '>', '"', '|', '?', '*'].contains(c) {
       return false
     }
   }
-  let base = name.to_lower().split(".").next().unwrap().to_owned()
+  let mut base = name.to_lower().split(".").next().unwrap().to_owned()
+  while base.has_suffix(" ") {
+    base = base[:base.length() - 1].to_owned()
+  }
   if ["con", "prn", "aux", "nul"].contains(base) {
     return false
   }
@@ -38,6 +39,41 @@ pub fn safe_name(name : String) -> Bool {
     }
   }
   true
+}
+
+///|
+/// Portable, root-relative PAR2 path. Never accepts an absolute or parent path.
+pub fn safe_path(path : String) -> Bool {
+  if path.is_empty() || path.length() > 4096 {
+    return false
+  }
+  let parts = path.split("/").to_array()
+  if parts.length() > 64 {
+    return false
+  }
+  for part in parts {
+    if !safe_name(part.to_owned()) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn claim_path(names : Map[String, Bool], path : String) -> Unit raise {
+  if !safe_path(path) {
+    fail("unsafe or unsupported relative path: " + path)
+  }
+  let key = path.to_lower()
+  if names.contains(key) {
+    fail("duplicate or case-colliding path: " + path)
+  }
+  for old, _ in names {
+    if key.has_prefix(old + "/") || old.has_prefix(key + "/") {
+      fail("file/directory path collision: " + path)
+    }
+  }
+  names[key] = true
 }
 
 ///|
@@ -91,7 +127,12 @@ fn as_bytes(words : Array[Int32]) -> Bytes {
 }
 
 ///|
-fn describe(name : String, data : Bytes, width : Int32) -> Member {
+fn describe(
+  name : String,
+  data : Bytes,
+  width : Int32,
+  recoverable~ : Bool = true,
+) -> Member {
   let prefix = md5(data[:data.length().min(16384)].to_owned())
   let buf = @buffer.Buffer()
   buf.write_bytes(prefix)
@@ -111,7 +152,15 @@ fn describe(name : String, data : Bytes, width : Int32) -> Member {
     sums.write_bytes(md5(b))
     sums.write_uint_le(crc32(b))
   }
-  { id, name, length: data.length(), hash, desc, sums: sums.to_bytes(), }
+  {
+    id,
+    name,
+    length: data.length(),
+    hash,
+    desc,
+    sums: sums.to_bytes(),
+    recoverable,
+  }
 }
 
 ///|

@@ -4,6 +4,7 @@ pub(all) struct FileStatus {
   healthy : Bool
   missing : Bool
   damaged_slices : Array[Int32]
+  recoverable : Bool
 }
 
 ///|
@@ -19,7 +20,11 @@ fn RecoverySet::scan(self : RecoverySet, files : Map[String, Bytes]) -> Scan {
   for m in self.members {
     let source = files.get(m.name)
     let bad = []
-    let count = (m.length + self.width - 1) / self.width
+    let count = if m.recoverable {
+      (m.length + self.width - 1) / self.width
+    } else {
+      0
+    }
     for i = 0; i < count; i = i + 1 {
       let start = i * self.width
       let end = (start + self.width).min(m.length)
@@ -48,6 +53,7 @@ fn RecoverySet::scan(self : RecoverySet, files : Map[String, Bytes]) -> Scan {
       healthy,
       missing: source is None,
       damaged_slices: bad,
+      recoverable: m.recoverable,
     })
   }
   { status, blocks, }

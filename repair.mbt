@@ -32,7 +32,10 @@ pub fn RecoverySet::repair(
   let mut pos = 0
   let mut recovered = 0
   for entry in self.members {
-    let buf = @buffer.Buffer(size_hint=entry.length)
+    if !entry.recoverable {
+      continue
+    }
+    let file_blocks : Array[BytesView] = []
     let count = (entry.length + self.width - 1) / self.width
     for i = 0; i < count; i = i + 1 {
       let block = match scan.blocks[pos] {
@@ -44,10 +47,12 @@ pub fn RecoverySet::repair(
         }
       }
       pos = pos + 1
-      let len = (entry.length - i * self.width).min(self.width)
-      buf.write_bytes(block[:len])
+      file_blocks.push(block)
     }
-    let bytes = buf.to_bytes()
+    // Allocate the result once instead of copying an entire file-sized Buffer.
+    let bytes = Bytes::makei(entry.length, fn(i) {
+      file_blocks[i / self.width][i % self.width]
+    })
     if md5(bytes) != entry.hash {
       fail("restored checksum mismatch: " + entry.name)
     }

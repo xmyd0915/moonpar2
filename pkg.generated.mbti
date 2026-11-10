@@ -2,11 +2,11 @@
 package "xmyd0915/moonpar2"
 
 // Values
-pub const MaxSourceBytes : Int32 = 67108864
+pub const MaxSourceBytes : Int32 = 268435456
 
-pub const MaxVolumeBytes : Int32 = 16777216
+pub const MaxVolumeBytes : Int32 = 67108864
 
-pub fn create(Array[(String, Bytes)], width? : Int32, recovery_blocks? : Int32) -> Bytes raise
+pub fn create(Array[(String, Bytes)], width? : Int32, recovery_blocks? : Int32, non_recovery_files? : Array[(String, Bytes)]) -> Bytes raise
 
 pub fn encode(Array[Array[Int32]], Int32) -> Array[Int32]?
 
@@ -16,6 +16,8 @@ pub fn recover(Array[Array[Int32]?], Array[Int32], Array[Array[Int32]]) -> Array
 
 pub fn safe_name(String) -> Bool
 
+pub fn safe_path(String) -> Bool
+
 // Errors
 
 // Types and methods
@@ -24,12 +26,16 @@ pub(all) struct FileStatus {
   healthy : Bool
   missing : Bool
   damaged_slices : Array[Int32]
+  recoverable : Bool
 }
 
 type RecoverySet
+pub fn RecoverySet::creators(Self) -> Array[String]
 pub fn RecoverySet::names(Self) -> Array[String]
+pub fn RecoverySet::recovery_blocks(Self) -> Int32
 pub fn RecoverySet::repair(Self, Map[String, Bytes]) -> Array[(String, Bytes)] raise
 pub fn RecoverySet::verify(Self, Map[String, Bytes]) -> Array[FileStatus]
+pub fn RecoverySet::warnings(Self) -> Array[String]
 
 // Type aliases
 

@@ -73,6 +73,53 @@ fn read_packets(raw : Bytes) -> Array[Packet] raise {
 }
 
 ///|
+priv struct PacketScan {
+  packets : Array[Packet]
+  skipped : Int32
+}
+
+///|
+/// Resynchronize byte by byte: corruption can destroy packet alignment or length.
+/// Hashing is budgeted to stop overlapping false headers causing quadratic work.
+fn scan_packets(raw : Bytes) -> PacketScan raise {
+  let packets = []
+  let mut p = 0
+  let mut accepted = 0
+  let mut hash_budget = raw.length() * 4
+  while raw.length() - p >= 64 {
+    if raw[p:p + 8] != magic[:] {
+      p = p + 1
+      continue
+    }
+    let len = le32(raw, p + 8).reinterpret_as_int()
+    if len < 64 ||
+      len % 4 != 0 ||
+      len > raw.length() - p ||
+      le32(raw, p + 12) != 0U {
+      p = p + 1
+      continue
+    }
+    if len > hash_budget {
+      fail("packet scan checksum budget exceeded")
+    }
+    hash_budget = hash_budget - len
+    let end = p + len
+    if md5(raw[p + 32:end]) != raw[p + 16:p + 32].to_owned() {
+      p = p + 1
+      continue
+    }
+    packets.push({
+      id: raw[p + 32:p + 48].to_owned(),
+      tag: raw[p + 48:p + 64].to_owned(),
+      body: raw[p + 64:end].to_owned(),
+    })
+    accepted = accepted + len
+    p = end
+  }
+  { packets, skipped: raw.length() - accepted, }
+}
+
+///|
 test "a flipped packet body fails validation" {
   let id = Bytes::make(16, b'0')
   let raw = write_packet(id, main_tag, b"abcd")
