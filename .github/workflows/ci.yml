@@ -41,3 +41,4 @@ jobs:
             _build/conformance.json
             _build/capacity.json
             _build/streaming.json
+            _build/volumes.json

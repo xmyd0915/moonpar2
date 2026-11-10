@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- Split output into an index and self-contained recovery volumes with `--volume-blocks`; each recovery volume carries repeated metadata.
+- Discover sibling volumes from an index or any recovery volume, with `--no-discovery` for explicit input selection.
+- Add `split_volume` to preserve packets and recovery exponents while regrouping existing complete volumes.
+- Stage all split outputs before exclusive publication; preserve existing files and roll back owned outputs after a write failure.
+- Verify missing-index recovery, damaged-volume recovery and bidirectional multi-volume interoperability with par2cmdline.
+- Accept the documented 16 MiB slice size in numeric CLI options and reject overflowing integers.
+
 ## 0.3.0
 
 - Unicode paths, UTF-16LE Unicode Filename packets and UTF-8 FileDesc interoperability.

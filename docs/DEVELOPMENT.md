@@ -3,6 +3,7 @@
 工具链固定为 MoonBit/core `0.10.16+b1a0e846e`，CLI 依赖 Node.js 24。Python 3 用于独立验收。运行步骤见 README。
 
 - `packet.mbt` 负责校验和重同步；`volume.mbt` 组装元数据。
+- `split.mbt` 保留包内容并分组恢复卷；`cmd/main/volumes.mbt` 负责同组发现及排他写出；`tests/volumes.py` 覆盖跨工具分卷工作流。
 - `manifest.mbt` 处理文件描述、路径与块视图；`create.mbt` 写卷。
 - `field.mbt`、`encode.mbt`、`recover.mbt` 处理有限域及恢复方程。
 - `verify.mbt` 与 `repair.mbt` 提供文件级接口；Node I/O 集中在 `cmd/main`。

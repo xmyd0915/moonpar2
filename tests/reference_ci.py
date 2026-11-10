@@ -29,6 +29,8 @@ def main():
             name, = [n for n in payload.namelist() if PurePosixPath(n).name == binary]
             exe.write_bytes(payload.read(name))
         os.chmod(exe, 0o755)
+        subprocess.run([sys.executable, str(Path(__file__).with_name("volumes.py")),
+                        "--par2", str(exe), "--report", "_build/volumes.json"], check=True)
         subprocess.run([sys.executable, str(Path(__file__).with_name("interop.py")),
                         "--par2", str(exe)], check=True)
         subprocess.run([sys.executable, str(Path(__file__).with_name("capacity.py")),
