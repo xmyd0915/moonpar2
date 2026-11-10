@@ -2,7 +2,7 @@
 struct RecoverySet {
   width : Int32
   members : Array[Member]
-  parity : Map[Int32, Array[Int32]]
+  parity : Map[Int32, Bytes]
   notices : Array[String]
   producers : Array[String]
 }
@@ -214,12 +214,12 @@ fn read_set_impl(
       recoverable,
     })
   }
-  let parity : Map[Int32, Array[Int32]] = Map([])
+  let parity : Map[Int32, Bytes] = Map([])
   for exp, body in raw_parity {
     if body.length() != 4 + width {
       fail("recovery slice size mismatch")
     }
-    parity[exp] = as_words(body[4:].to_owned())
+    parity[exp] = body[4:].to_owned()
   }
   { width, members, parity, notices, producers, }
 }

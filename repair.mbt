@@ -25,7 +25,7 @@ pub fn RecoverySet::repair(
       scan.blocks.length(),
       missing,
       exps,
-      exps.map(fn(e) { self.parity[e] }),
+      exps.map(fn(e) { as_words(self.parity[e]) }),
       fn(row, offset, j, weight) {
         if scan.blocks[j] is Some(view) {
           xor_slice(row, offset, view, weight)

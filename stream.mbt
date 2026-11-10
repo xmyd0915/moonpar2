@@ -296,7 +296,7 @@ pub fn RecoverySet::repair_stream(
   let residual = if missing.is_empty() {
     []
   } else {
-    exponents.map(fn(e) { self.parity[e].copy() })
+    exponents.map(fn(e) { as_words(self.parity[e]) })
   }
   let bases = slice_bases(scan.good.length())
   let mut index = 0
