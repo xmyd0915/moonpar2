@@ -62,6 +62,7 @@ extern "js" fn exit_code(n : Int32) -> Unit =
 
 ///|
 fn read(path : String, limit : Int32) -> Bytes? raise {
+  check_io(check_path(path))
   let mut result = None
   let err = read_bounded(path, limit, fn(b) { result = Some(b) })
   if !err.is_empty() {
