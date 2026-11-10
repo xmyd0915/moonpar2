@@ -51,7 +51,7 @@ def exercise(folder, reference, create_with_reference):
     assert "damaged alpha.bin" in status and "missing photo.dat" in status
     failed = folder / "no-parity"
     if create_with_reference:
-        call(cli + ["repair", str(failed), "set.par2"], folder, 2)
+        call(cli + ["repair", "--no-discovery", str(failed), "set.par2"], folder, 2)
         assert not failed.exists()
     call(cli + ["repair", "restored", *volumes], folder)
     out = folder / "restored"

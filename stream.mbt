@@ -180,7 +180,7 @@ pub fn create_stream(
   }
   let out = @buffer.Buffer()
   let creator = @utf8.encode(
-    "MoonPar2 0.3.0 https://github.com/xmyd0915/moonpar2",
+    "MoonPar2 0.4.0 https://github.com/xmyd0915/moonpar2",
   )
   out.write_bytes(
     write_packet(
