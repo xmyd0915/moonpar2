@@ -1,10 +1,10 @@
 # PAR2 2.0 符合性与兼容范围
 
-MoonPar2 的符合性目标是完整理解 [PAR2 2.0 核心格式](https://parchive.sourceforge.net/docs/specifications/parity-volume-spec/article-spec.html)的五类包、文件分组、块排序、校验与恢复关系，并在损坏卷中继续使用有效包。0.4.0 实现这些核心语义，并支持 Unicode Filename、64 位分块 I/O 和分卷写出与自动发现。下表列出已验证行为、资源范围及可选扩展。
+MoonPar2 的符合性目标是完整理解 [PAR2 2.0 核心格式](https://parchive.sourceforge.net/docs/specifications/parity-volume-spec/article-spec.html)的五类包、文件分组、块排序、校验与恢复关系，并在损坏卷中继续使用有效包。0.5.0 实现这些核心语义，并支持 Unicode Filename、64 位分块 I/O 和分卷写出与自动发现。下表列出已验证行为、资源范围及可选扩展。
 
 ## 核心覆盖矩阵
 
-| 规范部分 | 0.4.0 行为 | 可运行证据 |
+| 规范部分 | 0.5.0 行为 | 可运行证据 |
 | --- | --- | --- |
 | Packet Header | 识别魔数、小端长度、4 字节倍数及包 MD5；扫描按字节推进，不依赖损坏后仍然对齐 | `conformance_wbtest.mbt`；`tests/conformance.py` |
 | 坏包与截断 | 丢弃校验失败的包；错误长度、插入字节和截断尾部不遮蔽后面的有效包；报告跳过字节数 | 两种写入器 × 两种修复器的 7 类卷样本 |

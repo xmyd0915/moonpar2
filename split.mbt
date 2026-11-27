@@ -38,7 +38,7 @@ pub fn split_volume(
       }
     } else if !seen.contains(encoded) {
       seen[encoded] = true
-      metadata.write_bytes(encoded)
+      metadata.write_bytesview(encoded)
     }
   }
   let exponents = recovery.keys().to_array()

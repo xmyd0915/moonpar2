@@ -41,20 +41,20 @@ fn describe_stream(
     let b = read_exact(reader, file.name, pos, n)
     digest.update(b)
     if pos < 16384UL {
-      prefix.write_bytes(b[:minimum(n.to_uint64(), 16384UL - pos).to_int()])
+      prefix.write_bytesview(b[:minimum(n.to_uint64(), 16384UL - pos).to_int()])
     }
     if file.recoverable {
       let block = slice_at(b, 0, width)
-      sums.write_bytes(md5(block))
+      sums.write_bytesview(md5(block))
       sums.write_uint_le(crc32(block))
     }
     pos = pos + n.to_uint64()
   }
   let description = @buffer.Buffer()
-  description.write_bytes(md5(prefix.to_bytes()))
+  description.write_bytesview(md5(prefix.to_bytes()))
   description.write_uint64_le(file.size)
   let encoded = @utf8.encode(file.name)
-  description.write_bytes(encoded)
+  description.write_bytesview(encoded)
   let id = md5(description.to_bytes())
   for i = 0; i < (4 - encoded.length() % 4) % 4; i = i + 1 {
     description.write_byte(b'\x00')
@@ -136,18 +136,18 @@ pub fn create_stream(
   main.write_uint64_le(width.to_uint64())
   main.write_int_le(files.filter(fn(f) { f.recoverable }).length())
   for m in members {
-    main.write_bytes(m.id)
+    main.write_bytesview(m.id)
   }
   let set_id = md5(main.to_bytes())
   let meta = @buffer.Buffer()
-  meta.write_bytes(write_packet(set_id, main_tag, main.to_bytes()))
+  meta.write_bytesview(write_packet(set_id, main_tag, main.to_bytes()))
   for m in members {
-    meta.write_bytes(write_packet(set_id, desc_tag, m.desc))
+    meta.write_bytesview(write_packet(set_id, desc_tag, m.desc))
     if m.recoverable {
-      meta.write_bytes(write_packet(set_id, sums_tag, m.sums))
+      meta.write_bytesview(write_packet(set_id, sums_tag, m.sums))
     }
     if @utf8.encode(m.name).length() != m.name.length() {
-      meta.write_bytes(write_packet(set_id, unicode_tag, unicode_body(m)))
+      meta.write_bytesview(write_packet(set_id, unicode_tag, unicode_body(m)))
     }
   }
   let rows = Array::makei(recovery_blocks, fn(_) { Array::make(width / 2, 0) })
@@ -180,9 +180,9 @@ pub fn create_stream(
   }
   let out = @buffer.Buffer()
   let creator = @utf8.encode(
-    "MoonPar2 0.4.0 https://github.com/xmyd0915/moonpar2",
+    "MoonPar2 0.5.0 https://github.com/xmyd0915/moonpar2",
   )
-  out.write_bytes(
+  out.write_bytesview(
     write_packet(
       set_id,
       creator_tag,
@@ -190,14 +190,14 @@ pub fn create_stream(
     ),
   )
   let metadata = meta.to_bytes()
-  out.write_bytes(metadata)
+  out.write_bytesview(metadata)
   for e = 0; e < recovery_blocks; e = e + 1 {
     let b = @buffer.Buffer()
     b.write_int_le(e)
-    b.write_bytes(as_bytes(rows[e]))
-    out.write_bytes(write_packet(set_id, parity_tag, b.to_bytes()))
+    b.write_bytesview(as_bytes(rows[e]))
+    out.write_bytesview(write_packet(set_id, parity_tag, b.to_bytes()))
   }
-  out.write_bytes(metadata)
+  out.write_bytesview(metadata)
   let result = out.to_bytes()
   if result.length() > MaxVolumeBytes {
     fail("recovery volume exceeds 64 MiB")

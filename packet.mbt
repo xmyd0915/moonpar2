@@ -40,7 +40,7 @@ priv struct Packet {
 fn joined(parts : Array[Bytes]) -> Bytes {
   let buf = @buffer.Buffer()
   for part in parts {
-    buf.write_bytes(part)
+    buf.write_bytesview(part)
   }
   buf.to_bytes()
 }
@@ -49,10 +49,10 @@ fn joined(parts : Array[Bytes]) -> Bytes {
 fn write_packet(id : Bytes, tag : Bytes, body : Bytes) -> Bytes {
   let content = joined([id, tag, body])
   let buf = @buffer.Buffer()
-  buf.write_bytes(magic)
+  buf.write_bytesview(magic)
   buf.write_uint64_le((64 + body.length()).to_uint64())
-  buf.write_bytes(md5(content))
-  buf.write_bytes(content)
+  buf.write_bytesview(md5(content))
+  buf.write_bytesview(content)
   buf.to_bytes()
 }
 

@@ -4,9 +4,11 @@
 
 ## 先运行一次完整演示
 
-安装 [MoonBit](https://www.moonbitlang.com/download/)、Node.js 24 和 Python 3。在仓库根目录执行：
+从源码运行需要 [MoonBit 1.0 RC1 或更新版本](https://www.moonbitlang.com/download/)、Node.js 24 和 Python 3。在仓库根目录执行：
 
 ```sh
+git clone https://github.com/xmyd0915/moonpar2.git
+cd moonpar2
 moon build cmd/main --target js
 python examples/repair_demo.py
 ```
@@ -15,18 +17,20 @@ python examples/repair_demo.py
 
 ## 日常使用
 
-构建后将 `_build/js/debug/build/cmd/main/main.js` 复制为 `moonpar2.cjs`。在数据根目录执行：
+安装 Node.js 24，从 [GitHub Releases](https://github.com/xmyd0915/moonpar2/releases) 下载对应版本的 `.cjs` 并保存为 `moonpar2.cjs`。从源码构建后运行 `python tools/package_cli.py moonpar2.cjs` 可得到包含许可声明的同款命令行。在数据根目录执行：
 
 ```sh
 node /path/to/moonpar2.cjs create --recovery-blocks 8 backup.par2 documents photos
 node /path/to/moonpar2.cjs inspect backup.par2
 node /path/to/moonpar2.cjs verify backup.par2
+node /path/to/moonpar2.cjs plan backup.par2
 node /path/to/moonpar2.cjs repair restored backup.par2
 ```
 
 - `create` 接受文件或目录，递归收集普通文件。默认生成 4 个恢复块，可选 1–32 个；`--slice-size` 指定块宽，省略则自动选择。`--volume-blocks N` 每 N 个恢复块写一个分卷，另生成索引；省略则保持单卷输出。目标文件必须不存在。
 - `inspect` 列出创建工具、文件角色、可用恢复块和坏包诊断，无需读取源文件。
 - `verify` 检查源文件。退出码 0 为全部正常，1 为文件缺失或损坏，2 为参数、格式或文件操作错误。坏包告警与源文件状态分别报告。
+- `plan` 读取源数据，列出当前缺块数和可用恢复方程的秩。`healthy` 表示受保护文件完好，`repairable` 表示现有方程足够，两者退出码均为 0。`insufficient` 表示还需更多独立恢复数据，退出码为 1。仅校验成员的问题单列。此命令只读，适合在写出恢复目录前检查手头的分卷。
 - `repair` 分块读取和写入暂存目录，整文件校验通过后交付到新的输出目录，自动建立子目录，保留原件。恢复块不足时返回 2，不创建输出目录；交付时写盘中断后请使用另一个新目录重试。
 - `--base-dir ROOT` 显式指定数据根目录。读取默认以第一个卷所在目录为根；从索引或任意恢复分卷自动发现同目录的同名分卷组。`--no-discovery` 仅使用显式列出的卷，适合精确选择剩余恢复数据。
 - `create --check-only FILE` 将文件记入仅校验列表；修复输出只包含参与恢复的文件。已通过 MultiPar 校验和修复验证；par2cmdline 1.4.0 对这一标准功能有[已定位的实现缺陷](docs/CONFORMANCE.md)。
@@ -34,16 +38,16 @@ node /path/to/moonpar2.cjs repair restored backup.par2
 ## 作为 MoonBit 库
 
 ```sh
-moon add xmyd0915/moonpar2@0.4.0
+moon add xmyd0915/moonpar2@0.5.0
 ```
 
 在包配置导入 `"xmyd0915/moonpar2" @par`，通过 `create`、`read_set`、`verify`、`repair` 处理内存数据。大文件应用使用 `create_stream`、`verify_stream`、`repair_stream`，通过回调提供分块读写；长度及偏移采用 UInt64。核心库不访问磁盘、不调用外部 PAR2 程序。完整[调用示例](examples/library/main.mbt)可以通过 `moon run examples/library --target js` 运行。
 
-接入磁盘或对象存储时，参阅[流式接口指南](docs/STREAMING.md)及可运行的 [Unicode 恢复示例](examples/streaming/main.mbt)。
+接入磁盘或对象存储时，参阅[流式接口指南](docs/STREAMING.md)及可运行的 [Unicode 恢复示例](examples/streaming/main.mbt)。将同一集合最新的 `verify` 或 `verify_stream` 结果传入 `set.plan_repair(statuses)`，即可在应用内判断所需恢复数据。文件或卷发生变化后应重新校验，最终输出由 `repair` 的整文件校验确认。
 
 ## 支持范围
 
-| 项目 | 0.4.0 |
+| 项目 | 0.5.0 |
 | --- | --- |
 | 文件与目录 | 最多 4096 个普通文件，含空文件；中文、日文、emoji 和多级相对路径 |
 | 大文件 | 命令行默认流式处理；64 位长度与偏移，内存不随源文件总量线性增长 |
@@ -85,4 +89,4 @@ python tests/volumes.py --par2 /path/to/par2 --report _build/volumes.json
 
 参考工具固定为 [par2cmdline 1.4.0](https://github.com/Parchive/par2cmdline/releases/tag/v1.4.0) 和 [MultiPar 1.3.3.6](https://github.com/Yutaka-Sawada/MultiPar/releases/tag/v1.3.3.6) 官方包。双方分别写入、读取和修复目录备份，修复结果以 SHA-256 比对；四类核心数据包还做逐字节对照。中文目录通过两款工具双向修复；MultiPar 还验证仅校验列表及相关恢复。Windows CI 下载固定 SHA-256 的 MultiPar 归档完成验证。
 
-许可证：[MIT](LICENSE)。维护说明和版本变化见[开发指南](docs/DEVELOPMENT.md)及[变更记录](CHANGELOG.md)。
+MoonPar2 源码采用 [MIT 许可证](LICENSE)。独立命令行内嵌所用 MoonBit 标准库的 Apache 2.0 许可证和上游 NOTICE。par2cmdline 与 MultiPar 作为单独运行的互操作测试工具。维护说明和版本变化见[开发指南](docs/DEVELOPMENT.md)及[变更记录](CHANGELOG.md)。

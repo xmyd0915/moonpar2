@@ -39,6 +39,7 @@ def main():
         status = subprocess.run(cli + ["verify", "backup.par2"], cwd=folder)
         if status.returncode != 1:
             raise RuntimeError("expected damaged or missing files")
+        subprocess.run(cli + ["plan", "backup.par2"], cwd=folder, check=True)
         subprocess.run(cli + ["repair", "restored", "backup.par2"], cwd=folder, check=True)
         for name, original in files.items():
             digest = sha256((folder / "restored" / name).read_bytes()).hexdigest()

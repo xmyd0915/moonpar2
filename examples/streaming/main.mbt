@@ -17,7 +17,7 @@ fn demo() -> Unit raise {
   set.repair_stream(_ => None, (_, _, _) => b"", (path, offset, bytes) => {
     assert_eq(path, name)
     assert_eq(offset, staging.length().to_uint64())
-    staging.write_bytes(bytes)
+    staging.write_bytesview(bytes)
   })
   // Publish only after repair_stream has returned successfully.
   let restored = staging.to_bytes()

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Build and test the library and CLI with the MoonBit 1.0 RC1 compiler.
+- Use `plan` or `RecoverySet::plan_repair` to assess whether available recovery equations cover the missing slices before writing output. Check-only file damage is reported separately.
+
 ## 0.4.0
 
 - Split output into an index and self-contained recovery volumes with `--volume-blocks`; each recovery volume carries repeated metadata.

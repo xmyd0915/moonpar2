@@ -45,12 +45,32 @@ type RecoverySet
 pub fn RecoverySet::creators(Self) -> Array[String]
 pub fn RecoverySet::files(Self) -> Array[FileInfo]
 pub fn RecoverySet::names(Self) -> Array[String]
+pub fn RecoverySet::plan_repair(Self, Array[FileStatus]) -> RepairPlan raise
 pub fn RecoverySet::recovery_blocks(Self) -> Int32
 pub fn RecoverySet::repair(Self, Map[String, Bytes]) -> Array[(String, Bytes)] raise
 pub fn RecoverySet::repair_stream(Self, (String) -> UInt64? raise, (String, UInt64, Int32) -> Bytes raise, (String, UInt64, Bytes) -> Unit raise) -> Unit raise
 pub fn RecoverySet::verify(Self, Map[String, Bytes]) -> Array[FileStatus]
 pub fn RecoverySet::verify_stream(Self, (String) -> UInt64? raise, (String, UInt64, Int32) -> Bytes raise) -> Array[FileStatus] raise
 pub fn RecoverySet::warnings(Self) -> Array[String]
+
+pub(all) struct RepairPlan {
+  state : RepairState
+  damaged_files : Int32
+  check_only_damaged_files : Int32
+  missing_slices : Int32
+  available_recovery_slices : Int32
+  independent_recovery_slices : Int32
+  additional_recovery_slices : Int32
+}
+
+#derive(Eq)
+pub(all) enum RepairState {
+  Healthy
+  Repairable
+  Insufficient
+}
+pub fn RepairState::equal(Self, Self) -> Bool
+pub fn RepairState::not_equal(Self, Self) -> Bool
 
 // Type aliases
 

@@ -1,5 +1,5 @@
 ///|
-let usage = "moonpar2 create [--base-dir ROOT] [--recovery-blocks N] [--slice-size BYTES] [--volume-blocks N] [--check-only FILE] SET.par2 FILE_OR_DIR...\nmoonpar2 inspect [--no-discovery] INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 verify [--base-dir ROOT] [--no-discovery] INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 repair [--base-dir ROOT] [--no-discovery] NEW_DIRECTORY INDEX.par2 [VOLUME.par2 ...]"
+let usage = "moonpar2 create [--base-dir ROOT] [--recovery-blocks N] [--slice-size BYTES] [--volume-blocks N] [--check-only FILE] SET.par2 FILE_OR_DIR...\nmoonpar2 inspect [--no-discovery] INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 verify [--base-dir ROOT] [--no-discovery] INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 plan [--base-dir ROOT] [--no-discovery] INDEX.par2 [VOLUME.par2 ...]\nmoonpar2 repair [--base-dir ROOT] [--no-discovery] NEW_DIRECTORY INDEX.par2 [VOLUME.par2 ...]"
 
 ///|
 fn number(text : String) -> Int32 raise {
@@ -27,7 +27,7 @@ fn run(args : Array[String]) -> Int32 raise {
     return 0
   }
   if args == ["--version"] {
-    println("MoonPar2 0.4.0")
+    println("MoonPar2 0.5.0")
     return 0
   }
   guard args.length() >= 2 else { fail(usage) }
@@ -127,7 +127,7 @@ fn run(args : Array[String]) -> Int32 raise {
     }
     return 0
   }
-  if op != "inspect" && op != "verify" && op != "repair" {
+  if op != "inspect" && op != "verify" && op != "plan" && op != "repair" {
     fail(usage)
   }
   let start = if op == "repair" { at + 1 } else { at }
@@ -161,14 +161,35 @@ fn run(args : Array[String]) -> Int32 raise {
   }
   let base = base_opt.unwrap_or(parent(args[start]))
   check_io(check_path(base))
-  if op == "verify" {
+  if op == "verify" || op == "plan" {
+    let statuses = set.verify_stream(name => size_of(base + "/" + name), (
+      name,
+      at,
+      n,
+    ) => chunk(base + "/" + name, at, n))
+    if op == "plan" {
+      let result = set.plan_repair(statuses)
+      let label = match result.state {
+        Healthy => "healthy"
+        Repairable => "repairable"
+        Insufficient => "insufficient"
+      }
+      println("plan " + label)
+      println("damaged recoverable files " + result.damaged_files.to_string())
+      println(
+        "damaged check-only files " +
+        result.check_only_damaged_files.to_string(),
+      )
+      println("missing slices " + result.missing_slices.to_string())
+      println("recovery blocks " + result.available_recovery_slices.to_string())
+      println(
+        "independent equations " +
+        result.independent_recovery_slices.to_string(),
+      )
+      return if result.state is Insufficient { 1 } else { 0 }
+    }
     let mut code = 0
-    for
-      status in set.verify_stream(name => size_of(base + "/" + name), (
-        name,
-        at,
-        n,
-      ) => chunk(base + "/" + name, at, n)) {
+    for status in statuses {
       let kind = if status.recoverable { "" } else { " [check-only]" }
       if status.healthy {
         println("ok " + status.name + kind)

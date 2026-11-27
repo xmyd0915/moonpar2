@@ -21,8 +21,16 @@ recovery blocks 3
 missing documents/empty.txt (0 bad slices)
 missing documents/notes.txt (1 bad slices)
 damaged photos/2026/scan.bin (1 bad slices)
+plan repairable
+damaged recoverable files 3
+damaged check-only files 0
+missing slices 2
+recovery blocks 3
+independent equations 2
 recovered 3 files into restored
 ```
+
+这里有三个文件需要恢复。空文件只需重新创建，文本和图片各损失一个数据块。三个剩余恢复块对这两个缺块给出了两个独立方程，所以可以启动修复。如果看到 `plan insufficient`，可添加同组恢复分卷再运行 `plan`。
 
 ## 用自己的目录
 

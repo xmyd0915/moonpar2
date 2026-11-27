@@ -24,7 +24,7 @@ test "streaming repair writes bounded chunks and detects changed sources" {
   let restored = @buffer.Buffer()
   set.repair_stream(_ => None, (_, _, _) => b"", (_, _, b) => {
     assert_true(b.length() <= 4)
-    restored.write_bytes(b)
+    restored.write_bytesview(b)
   })
   assert_eq(restored.to_bytes(), original)
   let mut calls = 0

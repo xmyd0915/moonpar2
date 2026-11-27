@@ -19,19 +19,24 @@ jobs:
           python-version: '3.12'
       - uses: hustcer/setup-moonbit@9199da0ab63ea0c0bab1dc15f03d76e17ed4f75f
         with:
-          version: '0.10.16+b1a0e846e'
-          core-version: '0.10.16+b1a0e846e'
+          version: '1.0.0-rc1+3c0520448'
+          core-version: '1.0.0-rc1+3c0520448'
+      - name: Record and verify the compiler build
+        run: python tests/toolchain.py
       - run: moon fmt --check
       - run: moon check --target all --deny-warn
       - run: moon test --target js --deny-warn
       - run: moon test --target wasm-gc --deny-warn
       - run: moon build cmd/main --target js --deny-warn
+      - run: python tools/package_cli.py _build/moonpar2.cjs
+      - run: node _build/moonpar2.cjs --version
       - run: moon run examples/library --target js
       - run: moon run examples/streaming --target js
       - run: moon info --target js
       - run: git diff --exit-code -- "*.mbti"
       - run: python examples/repair_demo.py
       - run: python tests/stream_failures.py
+      - run: python tests/repair_plan.py --report _build/repair-plan.json
       - name: Check directories, Unicode and bounded-memory large-file recovery
         run: python tests/reference_ci.py
       - uses: actions/upload-artifact@v4
@@ -42,3 +47,5 @@ jobs:
             _build/capacity.json
             _build/streaming.json
             _build/volumes.json
+            _build/toolchain.txt
+            _build/repair-plan.json
